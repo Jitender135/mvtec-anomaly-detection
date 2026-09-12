@@ -52,7 +52,7 @@ def normalize_for_display(error_map: np.ndarray) -> np.ndarray:
     return (error_map - min_val) / (max_val - min_val)
 
 
-def main(category: str, image_size: int = 256) -> None:
+def main(category: str, show_normal: bool = False, image_size: int = 256) -> None:
     config = load_merged_config("configs/base.yaml", "configs/autoencoder.yaml")
     device = resolve_device(config["device"])
 
@@ -77,12 +77,13 @@ def main(category: str, image_size: int = 256) -> None:
         mask_transform=mask_transform,
     )
 
-    defective_sample = next(
-        test_ds[i] for i in range(len(test_ds)) if test_ds[i]["label"] == 1
+    target_label = 0 if show_normal else 1
+    selected_sample = next(
+        test_ds[i] for i in range(len(test_ds)) if test_ds[i]["label"] == target_label
     )
 
-    original = defective_sample["image"].to(device)          # (3, H, W)
-    ground_truth_mask = defective_sample["mask"].squeeze(0).numpy()  # (H, W)
+    original = selected_sample["image"].to(device)          # (3, H, W)
+    ground_truth_mask = selected_sample["mask"].squeeze(0).numpy()  # (H, W)
 
     with torch.no_grad():
         reconstruction = model(original.unsqueeze(0)).squeeze(0)  # (3, H, W)
@@ -98,7 +99,7 @@ def main(category: str, image_size: int = 256) -> None:
     fig, axes = plt.subplots(1, 5, figsize=(20, 4))
 
     axes[0].imshow(original_display)
-    axes[0].set_title(f"Original ({defective_sample['defect_type']})")
+    axes[0].set_title(f"Original ({selected_sample['defect_type']})")
 
     axes[1].imshow(reconstruction_display)
     axes[1].set_title("Reconstruction")
@@ -118,7 +119,8 @@ def main(category: str, image_size: int = 256) -> None:
     fig.suptitle(f"Autoencoder reconstruction quality -- category: {category}")
     plt.tight_layout()
 
-    output_path = f"artifacts/autoencoder_reconstruction_{category}.png"
+    suffix = "normal" if show_normal else "defective"
+    output_path = f"artifacts/autoencoder_reconstruction_{category}_{suffix}.png"
     plt.savefig(output_path, dpi=120)
     print(f"Saved visualization to: {output_path}")
 
@@ -127,4 +129,5 @@ def main(category: str, image_size: int = 256) -> None:
 
 if __name__ == "__main__":
     category = sys.argv[1] if len(sys.argv) > 1 else "bottle"
-    main(category=category)
+    show_normal = "--normal" in sys.argv
+    main(category=category, show_normal=show_normal)
