@@ -46,3 +46,24 @@ def get_mask_transform(image_size: int) -> T.Compose:
         T.Resize((image_size, image_size), interpolation=T.InterpolationMode.NEAREST),
         T.ToTensor(),  # PIL [0,255] -> torch float [0,1], shape (1, H, W)
     ])
+
+def get_autoencoder_image_transform(image_size: int) -> T.Compose:
+    """
+    Preprocessing pipeline for the from-scratch autoencoder.
+
+    Unlike get_image_transform(), this does NOT use ImageNet normalization.
+    The autoencoder has no pretrained weights expecting that distribution --
+    it is trained entirely from scratch on MVTec images. Its decoder uses a
+    Tanh() final activation, which outputs values in [-1, 1], so the input
+    must be scaled to match that same range for the reconstruction loss to
+    be meaningful.
+
+    Scaling to [-1, 1] (rather than [0, 1]) is done via Normalize(0.5, 0.5),
+    which computes (x - 0.5) / 0.5 -- a standard trick to remap [0,1] into
+    [-1,1] without needing dataset-specific statistics.
+    """
+    return T.Compose([
+        T.Resize((image_size, image_size)),
+        T.ToTensor(),  # [0, 255] -> [0, 1]
+        T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),  # [0,1] -> [-1,1]
+    ])

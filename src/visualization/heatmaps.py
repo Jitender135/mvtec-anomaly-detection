@@ -67,3 +67,18 @@ def overlay_mask_on_image(
     blend_weight = mask * alpha
     overlaid = image_rgb * (1 - blend_weight) + color_array * blend_weight
     return np.clip(overlaid, 0.0, 1.0)
+
+def denormalize_autoencoder_image(image_tensor: torch.Tensor) -> np.ndarray:
+    """
+    Reverse the autoencoder's [-1, 1] scaling to get a displayable image.
+
+    This is a DIFFERENT inverse than denormalize_image() -- that function
+    reverses ImageNet normalization (used for the PatchCore pipeline),
+    this one reverses the simple [0,1] <-> [-1,1] remapping used for the
+    from-scratch autoencoder's Tanh() output.
+    """
+    image = image_tensor.detach().cpu().numpy()
+    image = np.transpose(image, (1, 2, 0))  # (C,H,W) -> (H,W,C)
+    image = image * 0.5 + 0.5  # [-1,1] -> [0,1]
+    image = np.clip(image, 0.0, 1.0)
+    return image
