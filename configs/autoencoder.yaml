@@ -1,0 +1,17 @@
+# Autoencoder-specific hyperparameters.
+# Shared settings (seed, data root, image_size, device) come from base.yaml
+# and are merged in by the training script.
+
+category: "bottle"
+
+model:
+  latent_dim: 256
+
+training:
+  batch_size: 16
+  num_epochs: 50 # temporarily reduced to 2 for smoke test — will revert to 50 after
+  learning_rate: 0.001
+  val_split: 0.15   # fraction of train/good held out for validation monitoring
+
+checkpoint:
+  save_path: "artifacts/autoencoder_{category}.pt"

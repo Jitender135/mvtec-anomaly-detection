@@ -52,3 +52,25 @@ def resolve_device(requested_device: str) -> str:
         return "cpu"
 
     return requested_device
+
+def load_merged_config(base_path: str, override_path: str) -> dict[str, Any]:
+    """
+    Load base.yaml and a model-specific override file, merging them.
+
+    Keys in the override file are added alongside base keys. If both
+    files define the same top-level key, the override file's value wins.
+    This is a shallow merge -- sufficient for now since base.yaml and
+    the per-model configs don't currently share nested structure.
+
+    Args:
+        base_path: path to configs/base.yaml
+        override_path: path to e.g. configs/autoencoder.yaml
+
+    Returns:
+        A single merged configuration dictionary.
+    """
+    base_config = load_config(base_path)
+    override_config = load_config(override_path)
+
+    merged = {**base_config, **override_config}
+    return merged
