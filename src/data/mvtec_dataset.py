@@ -31,6 +31,14 @@ class MVTecDataset(Dataset):
         label=0 for good, label=1 for any defect type.
         Also loads the corresponding ground-truth mask for defective
         images, or an all-zero mask for normal images.
+
+    Two SEPARATE transforms are accepted (image_transform, mask_transform)
+    rather than one shared transform, because images and masks require
+    different preprocessing: images get resized + normalized to ImageNet
+    statistics (to match the pretrained backbone), while masks only get
+    resized (with nearest-neighbor interpolation to preserve binary
+    0/1 values) and must NEVER be normalized, since they are label data,
+    not pixel intensities.
     """
 
     def __init__(
@@ -38,16 +46,20 @@ class MVTecDataset(Dataset):
         root: str,
         category: str,
         split: str,
-        transform: Optional[Callable] = None,
+        image_transform: Optional[Callable] = None,
+        mask_transform: Optional[Callable] = None,
     ) -> None:
         """
         Args:
             root: Path to the MVTec AD root, e.g. "data/raw/mvtec_ad"
             category: e.g. "bottle"
             split: "train" or "test"
-            transform: optional callable applied to the PIL image,
-                       expected to return a torch.Tensor. If None,
-                       a minimal default (PIL -> tensor, no resize) is used.
+            image_transform: callable applied to the RGB PIL image.
+                              If None, a minimal default (PIL -> [0,1]
+                              tensor, no resizing) is used.
+            mask_transform: callable applied to the grayscale PIL mask.
+                             If None, a minimal default (PIL -> [0,1]
+                             tensor, no resizing) is used.
         """
         if split not in ("train", "test"):
             raise ValueError(f"split must be 'train' or 'test', got '{split}'")
@@ -55,7 +67,8 @@ class MVTecDataset(Dataset):
         self.root = Path(root)
         self.category = category
         self.split = split
-        self.transform = transform
+        self.image_transform = image_transform
+        self.mask_transform = mask_transform
 
         self.category_root = self.root / category
         if not self.category_root.exists():
@@ -135,17 +148,20 @@ class MVTecDataset(Dataset):
             # No defect -> all-zero mask, same spatial size as the image.
             mask = Image.new("L", image.size, color=0)
 
-        if self.transform is not None:
-            image = self.transform(image)
-            mask_tensor = self.transform(mask)
+        if self.image_transform is not None:
+            image = self.image_transform(image)
         else:
             # Minimal default: PIL -> float tensor in [0, 1], no resizing.
             image = torch.from_numpy(np.array(image)).permute(2, 0, 1).float() / 255.0
-            mask_tensor = torch.from_numpy(np.array(mask)).unsqueeze(0).float() / 255.0
+
+        if self.mask_transform is not None:
+            mask = self.mask_transform(mask)
+        else:
+            mask = torch.from_numpy(np.array(mask)).unsqueeze(0).float() / 255.0
 
         return {
             "image": image,
-            "mask": mask_tensor,
+            "mask": mask,
             "label": sample["label"],
             "defect_type": sample["defect_type"],
             "image_path": str(sample["image_path"]),
