@@ -1,0 +1,25 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Dataset (large, not tracked)
+data/raw/
+data/processed/
+
+# Model artifacts, checkpoints, saved thresholds
+artifacts/
+
+# MLflow tracking store
+mlruns/
+
+# Environment variables / secrets
+.env
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+.vscode/
