@@ -1,9 +1,8 @@
 """
 Sanity check script.
 
-Purpose: verify that the Python environment, virtual environment,
-and core dependencies (torch, numpy, yaml) are correctly installed
-and behaving as expected before any real project code is written.
+Verifies that the environment, dependencies, and configuration
+system are all working correctly together.
 """
 
 import sys
@@ -13,6 +12,9 @@ import torch
 import numpy
 import yaml
 
+from src.config import load_config, resolve_device
+from src.utils.seed import set_seed
+
 
 def main() -> None:
     print("=" * 50)
@@ -21,23 +23,24 @@ def main() -> None:
 
     print(f"Python version   : {platform.python_version()}")
     print(f"Python executable: {sys.executable}")
-
     print(f"PyTorch version  : {torch.__version__}")
     print(f"NumPy version    : {numpy.__version__}")
     print(f"PyYAML version   : {yaml.__version__}")
 
-    cuda_available = torch.cuda.is_available()
-    print(f"CUDA available   : {cuda_available}")
+    print("=" * 50)
+    print("CONFIGURATION CHECK")
+    print("=" * 50)
 
-    if cuda_available:
-        device_name = torch.cuda.get_device_name(0)
-        print(f"GPU device       : {device_name}")
-        selected_device = "cuda"
-    else:
-        print("GPU device       : None (falling back to CPU)")
-        selected_device = "cpu"
+    config = load_config("configs/base.yaml")
+    print("Loaded config:")
+    print(config)
 
-    print(f"Selected device  : {selected_device}")
+    set_seed(config["seed"])
+    print(f"Seed set to: {config['seed']}")
+
+    device = resolve_device(config["device"])
+    print(f"Resolved device: {device}")
+
     print("=" * 50)
     print("Sanity check passed.")
 

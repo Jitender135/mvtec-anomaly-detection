@@ -1,0 +1,15 @@
+# Global settings shared across all experiments/models.
+# Model-specific hyperparameters live in configs/autoencoder.yaml
+# and configs/patchcore.yaml, and will be merged with this file later.
+
+seed: 42
+
+data:
+  root: "data/raw/mvtec_ad"
+  image_size: 256
+
+device: "auto"   # "auto" | "cuda" | "cpu" — "auto" picks the best available device
+
+paths:
+  artifacts_dir: "artifacts"
+  mlruns_dir: "mlruns"
