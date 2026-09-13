@@ -40,3 +40,58 @@ def compute_image_score_topk(error_map: np.ndarray, k_fraction: float = 0.01) ->
     # top-k values, not a fully ordered ranking of every pixel.
     top_k_values = np.partition(flattened, -k)[-k:]
     return float(top_k_values.mean())
+
+from sklearn.metrics import (
+    roc_auc_score,
+    roc_curve,
+    average_precision_score,
+    precision_recall_curve,
+    precision_score,
+    recall_score,
+    f1_score,
+)
+
+
+def compute_roc_auc(labels: list[int], scores: list[float]) -> float:
+    """
+    ROC-AUC: probability that a randomly chosen anomalous image scores
+    higher than a randomly chosen normal image. Threshold-independent --
+    evaluates ranking quality across ALL possible thresholds at once.
+    1.0 = perfect separation, 0.5 = no better than random guessing.
+    """
+    return roc_auc_score(labels, scores)
+
+
+def compute_pr_auc(labels: list[int], scores: list[float]) -> float:
+    """
+    PR-AUC (average precision): area under the precision-recall curve.
+    More informative than ROC-AUC when classes are imbalanced (which
+    ours are: 20 normal vs 63 anomalous), since it focuses on performance
+    with respect to the positive (anomalous) class specifically.
+    """
+    return average_precision_score(labels, scores)
+
+
+def compute_classification_metrics(
+    labels: list[int], scores: list[float], threshold: float
+) -> dict:
+    """
+    Compute precision, recall, F1, and accuracy at a SPECIFIC threshold.
+
+    Unlike ROC-AUC/PR-AUC, these metrics depend entirely on the chosen
+    threshold -- report the threshold alongside these numbers always.
+    """
+    predictions = [1 if s >= threshold else 0 for s in scores]
+
+    precision = precision_score(labels, predictions, zero_division=0)
+    recall = recall_score(labels, predictions, zero_division=0)
+    f1 = f1_score(labels, predictions, zero_division=0)
+    accuracy = sum(p == l for p, l in zip(predictions, labels)) / len(labels)
+
+    return {
+        "threshold": threshold,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1,
+        "accuracy": accuracy,
+    }
